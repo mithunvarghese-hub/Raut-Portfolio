@@ -374,7 +374,7 @@ export default function App() {
           <button className="theme-toggle-btn" id="theme-toggle" onClick={toggleTheme} aria-label="Toggle Dark/Light Mode">
             {lightMode ? <Moon size={18} /> : <Sun size={18} />}
           </button>
-          <a href="#contact" className="btn btn-primary" style={{ padding: '0.6rem 1.2rem', fontSize: '0.85rem' }}>Let's Talk</a>
+          <a href="#contact" className="btn btn-primary header-cta" style={{ padding: '0.6rem 1.2rem', fontSize: '0.85rem' }}>Let's Talk</a>
           <div className={`hamburger ${mobileMenuOpen ? 'active' : ''}`} onClick={() => setMobileMenuOpen(p => !p)} id="hamburger">
             <span></span>
             <span></span>
