@@ -393,39 +393,39 @@ export default function App() {
         <div className="hero-glow-1"></div>
         <div className="hero-glow-2"></div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 0.8fr', gap: '2rem', alignItems: 'center', width: '100%', maxWidth: '1280px', margin: '0 auto', padding: '0 2rem', position: 'relative', zIndex: 3 }}>
+        <div className="hero-grid">
           
           {/* Hero text */}
-          <div className="hero-content reveal reveal-slide-left active" style={{ textAlign: 'left', padding: 0 }}>
-            <div className="hero-tagline" style={{ display: 'inline-flex' }}>
+          <div className="hero-content-block reveal reveal-slide-left active">
+            <div className="hero-tagline">
               <Sparkles size={14} style={{ marginRight: '0.5rem' }} /> Transforming Ideas Into Digital Excellence
             </div>
-            <h1 className="hero-title" style={{ fontSize: '3.75rem', textAlign: 'left' }}>
+            <h1 className="hero-title-responsive">
               Building Innovative Solutions<br />for <span className="text-gradient">Modern Businesses</span>
             </h1>
-            <p className="hero-description" style={{ textAlign: 'left', margin: '0 0 3rem 0' }}>
+            <p className="hero-desc-responsive">
               We deliver enterprise-grade software engineering, cloud architecture, and digital transformation solutions that scale with your growth.
             </p>
             
-            <div className="hero-ctas" style={{ justifyContent: 'flex-start' }}>
+            <div className="hero-ctas-responsive">
               <a href="#services" className="btn btn-primary">Get Started <ArrowRight size={16} /></a>
               <a href="#contact" className="btn btn-secondary">Contact Us</a>
             </div>
 
-            <div className="hero-stats reveal reveal-slide-up delay-200" ref={heroStatsRef} style={{ margin: 0, maxWidth: '100%' }}>
-              <div className="stat-item" style={{ textAlign: 'left', paddingLeft: 0 }}>
+            <div className="hero-stats-responsive reveal reveal-slide-up delay-200" ref={heroStatsRef}>
+              <div className="stat-item-responsive first">
                 <div className="stat-number" data-target="500">0</div>
                 <div className="stat-label">Projects Delivered</div>
               </div>
-              <div className="stat-item" style={{ textAlign: 'left' }}>
+              <div className="stat-item-responsive">
                 <div className="stat-number" data-target="150">0</div>
                 <div className="stat-label">Global Clients</div>
               </div>
-              <div className="stat-item" style={{ textAlign: 'left' }}>
+              <div className="stat-item-responsive">
                 <div className="stat-number" data-target="10">0</div>
                 <div className="stat-label">Years Experience</div>
               </div>
-              <div className="stat-item" style={{ textAlign: 'left' }}>
+              <div className="stat-item-responsive">
                 <div className="stat-number" data-target="99">0</div>
                 <div className="stat-label">Satisfaction Rate</div>
               </div>
@@ -433,7 +433,7 @@ export default function App() {
           </div>
 
           {/* 3D Lanyard canvas block in the center-right of the hero section */}
-          <div className="hero-lanyard-wrapper reveal reveal-scale delay-200" style={{ display: 'flex', justifyContent: 'center', width: '100%', position: 'relative', overflow: 'visible' }}>
+          <div className="hero-lanyard-wrapper reveal reveal-scale delay-200">
             <Lanyard />
           </div>
         </div>

@@ -6,8 +6,22 @@ import * as THREE from 'three';
 
 // --- Lanyard Rope & Physics Simulation Component ---
 function LanyardController({ cardFrontHTML, cardBackHTML }) {
-  const { camera } = useThree();
+  const { camera, size } = useThree();
   const lineRef = useRef(null);
+
+  // Dynamic camera scaling based on viewport size
+  useEffect(() => {
+    if (size.width < 480) {
+      camera.position.z = 15; // Zoom out further for small mobile viewports
+    } else if (size.width < 768) {
+      camera.position.z = 12.5; // Zoom out slightly for tablets
+    } else if (size.width < 1024) {
+      camera.position.z = 11;
+    } else {
+      camera.position.z = 10; // Default desktop view
+    }
+    camera.updateProjectionMatrix();
+  }, [size.width, camera]);
 
   // References for all joints in the chain
   const fixedRef = useRef(null);
@@ -366,7 +380,7 @@ export default function Lanyard() {
   `;
 
   return (
-    <div style={{ width: '100%', height: '520px', position: 'relative', zIndex: 5, overflow: 'visible' }}>
+    <div className="lanyard-canvas-container">
       <Canvas 
         camera={{ position: [0, 0, 10], fov: 32 }}
         shadows
