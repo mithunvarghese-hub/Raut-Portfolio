@@ -1266,11 +1266,20 @@ document.addEventListener('DOMContentLoaded', () => {
       // Rotation inertia
       let rotVelY = 0;
       let rotVelX = 0;
+      let rotVelZ = 0;
+      const lastCardPos = new THREE.Vector3();
 
       // Simulation Render Loop
       let animFrameId = null;
       const animate = (time) => {
         animFrameId = requestAnimationFrame(animate);
+
+        // Calculate card velocities for coupling
+        const velocityX = (cardMesh.position.x - lastCardPos.x) / dt;
+        const velocityY = (cardMesh.position.y - lastCardPos.y) / dt;
+        const velocityZ = (cardMesh.position.z - lastCardPos.z) / dt;
+        
+        lastCardPos.copy(cardMesh.position);
 
         // Verlet rope points integration
         for (let i = 1; i < numPoints; i++) {
@@ -1299,10 +1308,18 @@ document.addEventListener('DOMContentLoaded', () => {
           ropePoints[0].pos.set(0, anchorY, 0);
         }
 
-        // Mesh positioning
+        // Mesh positioning and rotation physics
         if (isDragging) {
           // Bottom node of rope follows card top center
           ropePoints[numPoints - 1].pos.copy(cardMesh.position).add(new THREE.Vector3(0, cardH / 2, 0));
+
+          // Drag orientation: tilt the card mesh based on drag speed
+          cardMesh.rotation.z = THREE.MathUtils.lerp(cardMesh.rotation.z, -velocityX * 0.12, 0.1);
+          cardMesh.rotation.x = THREE.MathUtils.lerp(cardMesh.rotation.x, velocityY * 0.12, 0.1);
+          // Twist Y position according to mouse move speed
+          rotVelY += velocityX * 0.01;
+          cardMesh.rotation.y += rotVelY;
+          rotVelY *= 0.95;
         } else {
           // Card position follows last node of rope
           const lastRopeNode = ropePoints[numPoints - 1].pos;
@@ -1312,10 +1329,33 @@ document.addEventListener('DOMContentLoaded', () => {
           const dir = lastRopeNode.clone().sub(secondLastRopeNode).normalize();
           cardMesh.position.copy(lastRopeNode).add(dir.clone().multiplyScalar(cardH / 2 - 0.1));
 
-          // Align rotation to segment direction vector
-          const targetRotation = new THREE.Quaternion();
-          targetRotation.setFromUnitVectors(new THREE.Vector3(0, -1, 0), dir);
-          cardMesh.quaternion.slerp(targetRotation, 0.1);
+          // Compute target pitch (X) and roll (Z) based on rope direction
+          const targetPitch = Math.atan2(-dir.z, -dir.y);
+          const targetRoll = Math.atan2(dir.x, -dir.y);
+          const targetYaw = 0; // Face forward
+
+          // Apply velocity coupling to induce twists and rolls
+          rotVelY += velocityX * 0.05; // side sway induces spin
+          rotVelZ -= velocityX * 0.02; // side sway induces roll
+          rotVelX += velocityZ * 0.02; // forward sway induces pitch
+
+          // Spring physics solver (accel = (target - current) * spring_constant)
+          const accX = (targetPitch - cardMesh.rotation.x) * 15.0;
+          const accZ = (targetRoll - cardMesh.rotation.z) * 15.0;
+          const accY = (targetYaw - cardMesh.rotation.y) * 5.0; // looser spring for Y-axis spin
+
+          // Update velocities with damping
+          rotVelX = (rotVelX + accX * dt) * 0.94;
+          rotVelZ = (rotVelZ + accZ * dt) * 0.94;
+          rotVelY = (rotVelY + accY * dt) * 0.96;
+
+          // Apply rotations
+          cardMesh.rotation.x += rotVelX;
+          cardMesh.rotation.z += rotVelZ;
+          cardMesh.rotation.y += rotVelY;
+
+          // Add a subtle self-swaying noise
+          cardMesh.rotation.y += Math.sin(time * 0.001) * 0.0003;
         }
 
         // Update Rope geometry representation
@@ -1325,17 +1365,11 @@ document.addEventListener('DOMContentLoaded', () => {
         ropeMesh.geometry.dispose();
         ropeMesh.geometry = newGeom;
 
-        // Subtle self-swaying rotation torque if static
-        if (!isDragging) {
-          cardMesh.rotation.y += Math.sin(time * 0.002) * 0.001;
-        } else {
-          // Subtle mouse inertia rotation
-          cardMesh.rotation.y = mouse.x * 0.5;
-          cardMesh.rotation.x = -mouse.y * 0.3;
-        }
-
         renderer.render(scene, camera);
       };
+
+      // Set initial position tracker
+      lastCardPos.copy(cardMesh.position);
 
       animate(0);
 
