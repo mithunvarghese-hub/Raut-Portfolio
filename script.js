@@ -952,6 +952,407 @@ document.addEventListener('DOMContentLoaded', () => {
     }, 500);
   };
 
+  /* ==========================================
+     REACT BITS LANYARD VANILLA THREE.JS IMPLEMENTATION
+     ========================================== */
+  const initLanyardSimulation = () => {
+    if (typeof THREE === 'undefined') {
+      console.warn('Three.js is not loaded.');
+      return;
+    }
+
+    const containers = document.querySelectorAll('.lanyard-container-canvas');
+    containers.forEach(container => {
+      const avatarUrl = container.getAttribute('data-avatar');
+      const name = container.getAttribute('data-name');
+      const role = container.getAttribute('data-role');
+      const linkedin = container.getAttribute('data-linkedin');
+
+      // Create local Canvas
+      const canvas = document.createElement('canvas');
+      container.appendChild(canvas);
+
+      // WebGL Renderer Setup
+      const renderer = new THREE.WebGLRenderer({ canvas: canvas, alpha: true, antialias: true });
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+      renderer.setSize(container.clientWidth, container.clientHeight);
+      renderer.shadowMap.enabled = true;
+
+      // Scene & Camera
+      const scene = new THREE.Scene();
+      const camera = new THREE.PerspectiveCamera(40, container.clientWidth / container.clientHeight, 0.1, 100);
+      camera.position.set(0, 0, 5.5);
+
+      // Lights
+      const ambientLight = new THREE.AmbientLight(0xffffff, 0.8);
+      scene.add(ambientLight);
+
+      const dirLight = new THREE.DirectionalLight(0xffffff, 1.2);
+      dirLight.position.set(2, 5, 3);
+      dirLight.castShadow = true;
+      scene.add(dirLight);
+
+      // Custom Card Textures via Canvas
+      const frontTextureCanvas = document.createElement('canvas');
+      frontTextureCanvas.width = 512;
+      frontTextureCanvas.height = 768;
+      const fCtx = frontTextureCanvas.getContext('2d');
+
+      const backTextureCanvas = document.createElement('canvas');
+      backTextureCanvas.width = 512;
+      backTextureCanvas.height = 768;
+      const bCtx = backTextureCanvas.getContext('2d');
+
+      // Convert to Three textures
+      const frontTexture = new THREE.CanvasTexture(frontTextureCanvas);
+      const backTexture = new THREE.CanvasTexture(backTextureCanvas);
+
+      // Pre-paint placeholder colors while image loads
+      const paintBadgeBackground = (ctx, titleName, titleRole) => {
+        // Clear background
+        ctx.fillStyle = '#080c17';
+        ctx.fillRect(0, 0, 512, 768);
+
+        // Grid/High-tech patterns
+        ctx.strokeStyle = 'rgba(255, 42, 117, 0.15)';
+        ctx.lineWidth = 1;
+        for (let x = 0; x < 512; x += 40) {
+          ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, 768); ctx.stroke();
+        }
+        for (let y = 0; y < 768; y += 40) {
+          ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(512, y); ctx.stroke();
+        }
+
+        // Inner glowing border
+        ctx.strokeStyle = '#ff2a75';
+        ctx.lineWidth = 12;
+        ctx.lineJoin = 'round';
+        ctx.strokeRect(20, 20, 472, 728);
+
+        // Title text glow
+        ctx.shadowColor = '#ff2a75';
+        ctx.shadowBlur = 15;
+        ctx.fillStyle = '#ffffff';
+        ctx.font = 'bold 36px "Plus Jakarta Sans", sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText(titleName.toUpperCase(), 256, 560);
+
+        ctx.shadowColor = '#38bdf8';
+        ctx.shadowBlur = 10;
+        ctx.fillStyle = '#38bdf8';
+        ctx.font = 'bold 24px "Inter", sans-serif';
+        ctx.fillText(titleRole.toUpperCase(), 256, 615);
+
+        // Badge Tech chip
+        ctx.shadowBlur = 0;
+        ctx.fillStyle = '#ff2a75';
+        ctx.fillRect(216, 60, 80, 25);
+        ctx.fillStyle = '#ffffff';
+        ctx.font = '14px "Inter", sans-serif';
+        ctx.fillText('RAUT CORP', 256, 78);
+      };
+
+      const paintBadgeBack = (ctx) => {
+        ctx.fillStyle = '#030712';
+        ctx.fillRect(0, 0, 512, 768);
+
+        // High tech grids
+        ctx.strokeStyle = 'rgba(56, 189, 248, 0.1)';
+        ctx.lineWidth = 1;
+        for (let x = 0; x < 512; x += 30) {
+          ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, 768); ctx.stroke();
+        }
+        for (let y = 0; y < 768; y += 30) {
+          ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(512, y); ctx.stroke();
+        }
+
+        // Glowing border
+        ctx.strokeStyle = '#38bdf8';
+        ctx.lineWidth = 12;
+        ctx.strokeRect(20, 20, 472, 728);
+
+        // Large glowing logo
+        ctx.shadowColor = '#ff2a75';
+        ctx.shadowBlur = 25;
+        ctx.fillStyle = '#ff2a75';
+        ctx.font = '800 80px "Plus Jakarta Sans", sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText('RAUT', 256, 380);
+
+        // Tech barcode lines
+        ctx.shadowBlur = 0;
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(100, 580, 312, 40);
+        ctx.font = 'bold 18px "Inter", sans-serif';
+        ctx.fillText('SECURE ACCESS LEVEL 4', 256, 670);
+      };
+
+      // Paint initially
+      paintBadgeBackground(fCtx, name, role);
+      paintBadgeBack(bCtx);
+      frontTexture.needsUpdate = true;
+      backTexture.needsUpdate = true;
+
+      // Load avatar image asynchronously
+      const avatarImg = new Image();
+      avatarImg.crossOrigin = 'Anonymous';
+      avatarImg.src = avatarUrl;
+      avatarImg.onload = () => {
+        // Redraw with avatar image
+        fCtx.clearRect(0, 0, 512, 768);
+        paintBadgeBackground(fCtx, name, role);
+
+        // Clip circular profile
+        fCtx.save();
+        fCtx.beginPath();
+        fCtx.arc(256, 260, 130, 0, Math.PI * 2);
+        fCtx.closePath();
+        fCtx.clip();
+
+        fCtx.drawImage(avatarImg, 126, 130, 260, 260);
+
+        // Glowing avatar ring
+        fCtx.restore();
+        fCtx.strokeStyle = '#38bdf8';
+        fCtx.lineWidth = 6;
+        fCtx.beginPath();
+        fCtx.arc(256, 260, 130, 0, Math.PI * 2);
+        fCtx.stroke();
+
+        frontTexture.needsUpdate = true;
+      };
+
+      // Badge Mesh
+      const cardW = 1.3;
+      const cardH = 1.8;
+      const geometry = new THREE.BoxGeometry(cardW, cardH, 0.05);
+
+      // Card physical materials
+      const frontMat = new THREE.MeshPhysicalMaterial({
+        map: frontTexture,
+        clearcoat: 1.0,
+        clearcoatRoughness: 0.1,
+        roughness: 0.4,
+        metalness: 0.1,
+        transparent: true
+      });
+
+      const backMat = new THREE.MeshPhysicalMaterial({
+        map: backTexture,
+        clearcoat: 1.0,
+        clearcoatRoughness: 0.1,
+        roughness: 0.4,
+        metalness: 0.1,
+        transparent: true
+      });
+
+      const edgeMat = new THREE.MeshStandardMaterial({
+        color: 0x0c0f17,
+        roughness: 0.8
+      });
+
+      const materials = [edgeMat, edgeMat, edgeMat, edgeMat, frontMat, backMat];
+      const cardMesh = new THREE.Mesh(geometry, materials);
+      scene.add(cardMesh);
+
+      // Lanyard Band / Rope setup (Verlet integration points)
+      const numPoints = 8;
+      const spacing = 0.22;
+      const ropePoints = [];
+      const anchorY = 2.0;
+
+      for (let i = 0; i < numPoints; i++) {
+        ropePoints.push({
+          pos: new THREE.Vector3(0, anchorY - i * spacing, 0),
+          oldPos: new THREE.Vector3(0, anchorY - i * spacing, 0),
+          pinned: i === 0
+        });
+      }
+
+      // Ribbon/Tube geometry for rope
+      const curvePoints = ropePoints.map(p => p.pos);
+      const ropeCurve = new THREE.CatmullRomCurve3(curvePoints);
+      const ropeGeom = new THREE.TubeGeometry(ropeCurve, 16, 0.03, 6, false);
+      
+      const ropeMat = new THREE.MeshStandardMaterial({
+        color: 0xff2a75, // neon pink rope
+        roughness: 0.6
+      });
+      const ropeMesh = new THREE.Mesh(ropeGeom, ropeMat);
+      scene.add(ropeMesh);
+
+      // Physics variables
+      const gravity = new THREE.Vector3(0, -10.5, 0);
+      const damping = 0.985;
+      const dt = 0.016;
+
+      // Mouse drag controls
+      const raycaster = new THREE.Raycaster();
+      const mouse = new THREE.Vector2();
+      let isDragging = false;
+      const dragOffset = new THREE.Vector3();
+      const dragPlane = new THREE.Plane(new THREE.Vector3(0, 0, 1), 0);
+
+      const updateMouseCoords = (e) => {
+        const rect = canvas.getBoundingClientRect();
+        const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+        const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+        mouse.x = ((clientX - rect.left) / rect.width) * 2 - 1;
+        mouse.y = -((clientY - rect.top) / rect.height) * 2 + 1;
+      };
+
+      const startDrag = (e) => {
+        updateMouseCoords(e);
+        raycaster.setFromCamera(mouse, camera);
+        const intersects = raycaster.intersectObject(cardMesh);
+
+        if (intersects.length > 0) {
+          isDragging = true;
+          container.style.cursor = 'grabbing';
+          // Calculate offset
+          const intersectPoint = intersects[0].point;
+          dragOffset.copy(intersectPoint).sub(cardMesh.position);
+          dragPlane.setFromNormalAndCoplanarPoint(new THREE.Vector3(0, 0, 1), intersectPoint);
+        }
+      };
+
+      const doDrag = (e) => {
+        updateMouseCoords(e);
+        if (!isDragging) {
+          // Check hover for cursor shift
+          raycaster.setFromCamera(mouse, camera);
+          const intersects = raycaster.intersectObject(cardMesh);
+          container.style.cursor = intersects.length > 0 ? 'grab' : 'auto';
+          return;
+        }
+
+        raycaster.setFromCamera(mouse, camera);
+        const mouseIntersection = new THREE.Vector3();
+        raycaster.ray.intersectPlane(dragPlane, mouseIntersection);
+
+        const targetPos = mouseIntersection.sub(dragOffset);
+        // Constrain target boundaries to keep within viewport
+        targetPos.x = Math.max(-2, Math.min(2, targetPos.x));
+        targetPos.y = Math.max(-2.5, Math.min(1.8, targetPos.y));
+        targetPos.z = 0;
+
+        cardMesh.position.copy(targetPos);
+      };
+
+      const endDrag = () => {
+        isDragging = false;
+        container.style.cursor = 'auto';
+      };
+
+      // Listeners
+      canvas.addEventListener('mousedown', startDrag);
+      window.addEventListener('mousemove', doDrag);
+      window.addEventListener('mouseup', endDrag);
+
+      canvas.addEventListener('touchstart', startDrag, { passive: true });
+      window.addEventListener('touchmove', doDrag, { passive: true });
+      window.addEventListener('touchend', endDrag);
+
+      // Handle local resize
+      const localResize = () => {
+        const w = container.clientWidth;
+        const h = container.clientHeight;
+        camera.aspect = w / h;
+        camera.updateProjectionMatrix();
+        renderer.setSize(w, h);
+      };
+      window.addEventListener('resize', localResize);
+
+      // Rotation inertia
+      let rotVelY = 0;
+      let rotVelX = 0;
+
+      // Simulation Render Loop
+      let animFrameId = null;
+      const animate = (time) => {
+        animFrameId = requestAnimationFrame(animate);
+
+        // Verlet rope points integration
+        for (let i = 1; i < numPoints; i++) {
+          if (i === numPoints - 1 && isDragging) continue; // Dragged node attached to mouse
+          const p = ropePoints[i];
+          const vel = p.pos.clone().sub(p.oldPos).multiplyScalar(damping);
+          p.oldPos.copy(p.pos);
+          p.pos.add(vel).add(gravity.clone().multiplyScalar(dt * dt));
+        }
+
+        // Constraints solver
+        for (let iter = 0; iter < 10; iter++) {
+          for (let i = 0; i < numPoints - 1; i++) {
+            const pA = ropePoints[i];
+            const pB = ropePoints[i + 1];
+            const diff = pB.pos.clone().sub(pA.pos);
+            const dist = diff.length();
+            const difference = spacing - dist;
+            const percent = (difference / dist) * 0.5;
+            const offset = diff.multiplyScalar(percent);
+
+            if (!pA.pinned) pA.pos.sub(offset);
+            if (!(i + 1 === numPoints - 1 && isDragging)) pB.pos.add(offset);
+          }
+          // Pin top anchor
+          ropePoints[0].pos.set(0, anchorY, 0);
+        }
+
+        // Mesh positioning
+        if (isDragging) {
+          // Bottom node of rope follows card top center
+          ropePoints[numPoints - 1].pos.copy(cardMesh.position).add(new THREE.Vector3(0, cardH / 2, 0));
+        } else {
+          // Card position follows last node of rope
+          const lastRopeNode = ropePoints[numPoints - 1].pos;
+          const secondLastRopeNode = ropePoints[numPoints - 2].pos;
+          
+          // Card hangs below the last node along rope vector direction
+          const dir = lastRopeNode.clone().sub(secondLastRopeNode).normalize();
+          cardMesh.position.copy(lastRopeNode).add(dir.clone().multiplyScalar(cardH / 2 - 0.1));
+
+          // Align rotation to segment direction vector
+          const targetRotation = new THREE.Quaternion();
+          targetRotation.setFromUnitVectors(new THREE.Vector3(0, -1, 0), dir);
+          cardMesh.quaternion.slerp(targetRotation, 0.1);
+        }
+
+        // Update Rope geometry representation
+        const newCurvePoints = ropePoints.map(p => p.pos);
+        const newCurve = new THREE.CatmullRomCurve3(newCurvePoints);
+        const newGeom = new THREE.TubeGeometry(newCurve, 16, 0.03, 6, false);
+        ropeMesh.geometry.dispose();
+        ropeMesh.geometry = newGeom;
+
+        // Subtle self-swaying rotation torque if static
+        if (!isDragging) {
+          cardMesh.rotation.y += Math.sin(time * 0.002) * 0.001;
+        } else {
+          // Subtle mouse inertia rotation
+          cardMesh.rotation.y = mouse.x * 0.5;
+          cardMesh.rotation.x = -mouse.y * 0.3;
+        }
+
+        renderer.render(scene, camera);
+      };
+
+      animate(0);
+
+      // Cleanup
+      container.addEventListener('remove', () => {
+        cancelAnimationFrame(animFrameId);
+        window.removeEventListener('resize', localResize);
+        canvas.removeEventListener('mousedown', startDrag);
+        window.removeEventListener('mousemove', doDrag);
+        window.removeEventListener('mouseup', endDrag);
+      });
+    });
+  };
+
+  // Trigger Lanyard simulations
+  initLanyardSimulation();
+
   // Trigger logo loop
   initLogoLoop();
 
